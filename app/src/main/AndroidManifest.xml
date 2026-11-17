@@ -5,16 +5,18 @@
     <!-- Play Store hides the app from devices without NFC. -->
     <uses-feature android:name="android.hardware.nfc" android:required="true" />
 
+    <!-- allowBackup=false: passport exports in app storage must never go to cloud backup. -->
     <application
-        android:allowBackup="true"
+        android:name=".NfcIdApp"
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:windowSoftInputMode="adjustResize"
         android:theme="@style/Theme.NFCID">
         <activity
             android:name=".MainActivity"
+            android:windowSoftInputMode="adjustResize"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

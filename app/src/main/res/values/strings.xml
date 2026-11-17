@@ -8,4 +8,19 @@
     <string name="no_uid">(no UID)</string>
     <string name="ndef_records">NDEF records</string>
     <string name="applications">Applications</string>
+    <string name="tab_scanner">Scanner</string>
+    <string name="tab_passport">Passport</string>
+    <string name="passport_key_title">Passport details (photo page)</string>
+    <string name="passport_document_number">Document number</string>
+    <string name="passport_date_of_birth">Date of birth (YYMMDD)</string>
+    <string name="passport_date_of_expiry">Date of expiry (YYMMDD)</string>
+    <string name="passport_key_privacy">Used only to unlock the chip. Kept in memory, never saved or logged.</string>
+    <string name="passport_hold">Hold the passport against the back of the phone, just below the camera bar, and keep it still for about 5 seconds. The chip is in the cover or the photo page.</string>
+    <string name="passport_keep_still">Keep the passport still.</string>
+    <string name="passport_result_title">Passport read</string>
+    <string name="passport_csca_note">The signature is checked against the certificate embedded in the passport. Checking that certificate against the issuing country\'s CSCA is a separate step.</string>
+    <string name="passport_saved">Saved: %1$s</string>
+    <string name="passport_nothing_stored">No passport data stored on this phone.</string>
+    <string name="passport_stored_count">%1$d passport export(s) stored in app storage.</string>
+    <string name="passport_delete">Delete stored data</string>
 </resources>

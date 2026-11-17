@@ -1,6 +1,7 @@
 plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.compose.compiler)
+  alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -34,6 +35,14 @@ android {
   packaging {
     resources {
       excludes += "/META-INF/{AL2.0,LGPL2.1}"
+      // BouncyCastle / JMRTD jars: signing files, licenses, multi-release classes (unused on
+      // Android), and the JCA service file (we register BouncyCastleProvider explicitly).
+      excludes += "/META-INF/*.SF"
+      excludes += "/META-INF/*.RSA"
+      excludes += "/META-INF/*.DSA"
+      excludes += "/META-INF/LICENSE.md"
+      excludes += "/META-INF/versions/**"
+      excludes += "/META-INF/services/java.security.Provider"
     }
   }
 }
@@ -42,6 +51,13 @@ dependencies {
   val composeBom = platform(libs.androidx.compose.bom)
   implementation(composeBom)
   androidTestImplementation(composeBom)
+
+  // Passport (eMRTD): BAC/PACE, secure messaging, LDS parsing, CMS verification
+  implementation(libs.jmrtd)
+  implementation(libs.scuba.sc.android)
+  implementation(libs.bouncycastle.prov)
+  implementation(libs.bouncycastle.pkix)
+  implementation(libs.kotlinx.serialization.json)
 
   // Core Android dependencies
   implementation(libs.androidx.core.ktx)

@@ -19,6 +19,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.PrimaryTabRow
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
@@ -39,6 +41,15 @@ import java.time.format.DateTimeFormatter
 private val timeFormatter: DateTimeFormatter =
   DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.systemDefault())
 
+enum class AppTab(val title: Int) {
+  Scanner(R.string.tab_scanner),
+  Passport(R.string.tab_passport),
+}
+
+/**
+ * App shell: top bar, Scanner/Passport tabs, and the scanner list. The passport tab's content is a
+ * slot so this screen doesn't depend on the passport view model.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
@@ -46,44 +57,63 @@ fun MainScreen(
   onOpenNfcSettings: () -> Unit,
   onClear: () -> Unit,
   modifier: Modifier = Modifier,
+  selectedTab: AppTab = AppTab.Scanner,
+  onTabSelected: (AppTab) -> Unit = {},
+  passportContent: @Composable (PaddingValues) -> Unit = {},
 ) {
   Scaffold(
     modifier = modifier,
     topBar = {
-      CenterAlignedTopAppBar(
-        title = { Text(stringResource(R.string.app_name)) },
-        actions = {
-          if (state.tags.isNotEmpty()) {
-            TextButton(onClick = onClear) { Text(stringResource(R.string.clear)) }
+      Column {
+        CenterAlignedTopAppBar(
+          title = { Text(stringResource(R.string.app_name)) },
+          actions = {
+            if (selectedTab == AppTab.Scanner && state.tags.isNotEmpty()) {
+              TextButton(onClick = onClear) { Text(stringResource(R.string.clear)) }
+            }
+          },
+          colors =
+            TopAppBarDefaults.topAppBarColors(
+              containerColor = MaterialTheme.colorScheme.primaryContainer,
+              titleContentColor = MaterialTheme.colorScheme.primary,
+            ),
+        )
+        PrimaryTabRow(selectedTabIndex = selectedTab.ordinal) {
+          AppTab.entries.forEach { tab ->
+            Tab(
+              selected = tab == selectedTab,
+              onClick = { onTabSelected(tab) },
+              text = { Text(stringResource(tab.title)) },
+            )
           }
-        },
-        colors =
-          TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            titleContentColor = MaterialTheme.colorScheme.primary,
-          ),
-      )
+        }
+      }
     },
   ) { innerPadding ->
-    LazyColumn(
-      modifier = Modifier.fillMaxSize(),
-      contentPadding =
-        PaddingValues(
-          start = 16.dp,
-          end = 16.dp,
-          top = innerPadding.calculateTopPadding() + 16.dp,
-          bottom = innerPadding.calculateBottomPadding() + 16.dp,
-        ),
-      verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-      item { StatusCard(state.status, onOpenNfcSettings) }
-      items(state.tags) { TagCard(it) }
+    val contentPadding =
+      PaddingValues(
+        start = 16.dp,
+        end = 16.dp,
+        top = innerPadding.calculateTopPadding() + 16.dp,
+        bottom = innerPadding.calculateBottomPadding() + 16.dp,
+      )
+    when (selectedTab) {
+      AppTab.Scanner ->
+        LazyColumn(
+          modifier = Modifier.fillMaxSize(),
+          contentPadding = contentPadding,
+          verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+          item { StatusCard(state.status, onOpenNfcSettings) }
+          items(state.tags) { TagCard(it) }
+        }
+      AppTab.Passport -> passportContent(contentPadding)
     }
   }
 }
 
 @Composable
-private fun StatusCard(status: NfcStatus, onOpenNfcSettings: () -> Unit) {
+internal fun StatusCard(status: NfcStatus, onOpenNfcSettings: () -> Unit) {
   val containerColor =
     when (status) {
       NfcStatus.Ready -> MaterialTheme.colorScheme.secondaryContainer
@@ -151,7 +181,7 @@ private fun TagCard(tag: TagDetails) {
 }
 
 @Composable
-private fun PropertyRow(label: String, value: String) {
+internal fun PropertyRow(label: String, value: String) {
   Row {
     Text(
       text = label,

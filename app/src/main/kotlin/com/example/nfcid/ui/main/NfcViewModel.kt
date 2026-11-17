@@ -34,6 +34,14 @@ class NfcViewModel : ViewModel() {
 
   fun clear() = _uiState.update { it.copy(tags = emptyList()) }
 
+  /** Read from the NFC binder thread to route tags, so it lives outside Compose state. */
+  private val _selectedTab = MutableStateFlow(AppTab.Scanner)
+  val selectedTab: StateFlow<AppTab> = _selectedTab.asStateFlow()
+
+  fun selectTab(tab: AppTab) {
+    _selectedTab.value = tab
+  }
+
   companion object {
     const val MAX_HISTORY = 50
   }
