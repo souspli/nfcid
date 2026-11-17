@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">NFC ID</string>
+    <string name="clear">Clear</string>
+    <string name="status_ready">Hold a tag against the back of the phone.</string>
+    <string name="status_disabled">NFC is turned off.</string>
+    <string name="status_unsupported">This device has no NFC hardware.</string>
+    <string name="open_nfc_settings">Open NFC settings</string>
+    <string name="no_uid">(no UID)</string>
+    <string name="ndef_records">NDEF records</string>
+    <string name="applications">Applications</string>
+</resources>
