@@ -76,6 +76,8 @@ data class PassportExport(
     val detail: String? = null,
     val aaChallengeHex: String? = null,
     val aaResponseHex: String? = null,
+    /** Souspli address the challenge was derived from, if the read was bound to one. */
+    val aaBoundAddressHex: String? = null,
   )
 
   fun toJson(): String = json.encodeToString(serializer(), this)
@@ -133,7 +135,7 @@ data class PassportExport(
           ),
         chipAuth =
           with(result.chipAuth) {
-            ChipAuthExport(method, status.name, detail, aaChallenge?.toHex(""), aaResponse?.toHex(""))
+            ChipAuthExport(method, status.name, detail, aaChallenge?.toHex(""), aaResponse?.toHex(""), aaBoundAddress?.toHex(""))
           },
       )
     }

@@ -85,6 +85,7 @@ class MainActivity : ComponentActivity(), NfcAdapter.ReaderCallback {
                 onDocumentNumberChange = passportViewModel::onDocumentNumberChange,
                 onDateOfBirthChange = passportViewModel::onDateOfBirthChange,
                 onDateOfExpiryChange = passportViewModel::onDateOfExpiryChange,
+                onBindAddressChange = passportViewModel::onBindAddressChange,
                 onDeleteStoredData = passportViewModel::deleteStoredData,
                 onOpenNfcSettings = openNfcSettings,
               )

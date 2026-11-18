@@ -15,6 +15,9 @@
     <string name="passport_date_of_birth">Date of birth (YYMMDD)</string>
     <string name="passport_date_of_expiry">Date of expiry (YYMMDD)</string>
     <string name="passport_key_privacy">Used only to unlock the chip. Kept in memory, never saved or logged.</string>
+    <string name="passport_bind_title">Bind to a Souspli key (optional)</string>
+    <string name="passport_bind_address">Souspli address (0x…)</string>
+    <string name="passport_bind_help">If the chip supports Active Authentication, it signs a challenge derived from this address, showing the passport was presented for that key.</string>
     <string name="passport_hold">Hold the passport against the back of the phone, just below the camera bar, and keep it still for about 5 seconds. The chip is in the cover or the photo page.</string>
     <string name="passport_keep_still">Keep the passport still.</string>
     <string name="passport_result_title">Passport read</string>

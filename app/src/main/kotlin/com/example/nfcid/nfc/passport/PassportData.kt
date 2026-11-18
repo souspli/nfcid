@@ -53,9 +53,11 @@ data class ChipAuthResult(
   val method: String,
   val status: Status,
   val detail: String? = null,
-  /** Active Authentication only: the random challenge we sent and the chip's signature over it. */
+  /** Active Authentication only: the challenge we sent and the chip's signature over it. */
   val aaChallenge: ByteArray? = null,
   val aaResponse: ByteArray? = null,
+  /** The Souspli address [aaChallenge] was derived from (see [KeyBinding]); null if it was random. */
+  val aaBoundAddress: ByteArray? = null,
 ) {
   enum class Status { Passed, Failed, Unverified, NotSupported }
 }

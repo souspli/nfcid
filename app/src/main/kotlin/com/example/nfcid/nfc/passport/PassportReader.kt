@@ -63,7 +63,8 @@ sealed interface PassportReadOutcome {
  */
 class PassportReader(private val onStep: (PassportStep) -> Unit) {
 
-  fun read(tag: Tag, key: MrzKey): PassportReadOutcome {
+  /** [bindAddress]: a 20-byte Souspli address for the chip to sign (see [KeyBinding]), if it can. */
+  fun read(tag: Tag, key: MrzKey, bindAddress: ByteArray? = null): PassportReadOutcome {
     val started = SystemClock.elapsedRealtime()
     val isoDep = IsoDep.get(tag) ?: return PassportReadOutcome.Failure(PassportStep.Connecting, "Not an ISO-DEP chip")
     var step = PassportStep.Connecting
@@ -131,9 +132,11 @@ class PassportReader(private val onStep: (PassportStep) -> Unit) {
       enter(PassportStep.ChipAuthentication)
       val chipAuth =
         when {
+          // Only Active Authentication signs a challenge, so a requested binding prefers it.
+          dg15 != null && bindAddress != null -> activeAuthentication(service, dg15.publicKey, dg14, bindAddress)
           dg14 != null && dg14.infos<ChipAuthenticationPublicKeyInfo>().isNotEmpty() ->
             chipAuthentication(service, dg14, com)
-          dg15 != null -> activeAuthentication(service, dg15.publicKey, dg14)
+          dg15 != null -> activeAuthentication(service, dg15.publicKey, dg14, null)
           else -> ChipAuthResult("none", ChipAuthResult.Status.NotSupported, "No DG14 or DG15 on this chip")
         }
       Log.i(TAG, "Passport: ${chipAuth.method} ${chipAuth.status}")
@@ -213,9 +216,17 @@ class PassportReader(private val onStep: (PassportStep) -> Unit) {
     }
   }
 
-  /** Active Authentication: the chip signs our random challenge with its DG15 private key. */
-  private fun activeAuthentication(service: PassportService, publicKey: PublicKey, dg14: DG14File?): ChipAuthResult {
-    val challenge = ByteArray(8).also { SecureRandom().nextBytes(it) }
+  /**
+   * Active Authentication: the chip signs our challenge with its DG15 private key. The challenge
+   * is random, or derived from [bindAddress] to bind the read to that Souspli address.
+   */
+  private fun activeAuthentication(
+    service: PassportService,
+    publicKey: PublicKey,
+    dg14: DG14File?,
+    bindAddress: ByteArray?,
+  ): ChipAuthResult {
+    val challenge = bindAddress?.let(KeyBinding::challengeFor) ?: ByteArray(8).also { SecureRandom().nextBytes(it) }
     val sigOid = dg14?.infos<ActiveAuthenticationInfo>()?.firstOrNull()?.signatureAlgorithmOID
     val ecAlgorithm = sigOid?.let { runCatching { ActiveAuthenticationInfo.lookupMnemonicByOID(it) }.getOrNull() }
     val (digestAlgorithm, signatureAlgorithm) =
@@ -230,7 +241,7 @@ class PassportReader(private val onStep: (PassportStep) -> Unit) {
           is ECPublicKey -> verifyEcAa(publicKey, challenge, response, sigOid)
           else -> ChipAuthResult.Status.Unverified to "Unsupported key type ${publicKey.algorithm}"
         }
-      ChipAuthResult("Active Authentication", status, detail, challenge, response)
+      ChipAuthResult("Active Authentication", status, detail, challenge, response, bindAddress)
     } catch (e: Exception) {
       if (isTagLost(e)) throw e
       ChipAuthResult("Active Authentication", ChipAuthResult.Status.Failed, "${e.javaClass.simpleName} ${swOf(e)}".trim(), challenge)

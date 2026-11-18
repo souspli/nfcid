@@ -26,6 +26,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.nfcid.R
+import com.example.nfcid.nfc.toHex
 import com.example.nfcid.nfc.passport.ChipAuthResult
 import com.example.nfcid.nfc.passport.MrzKey
 import com.example.nfcid.nfc.passport.PassportReadResult
@@ -48,6 +49,7 @@ fun PassportScreen(
   onDocumentNumberChange: (String) -> Unit,
   onDateOfBirthChange: (String) -> Unit,
   onDateOfExpiryChange: (String) -> Unit,
+  onBindAddressChange: (String) -> Unit,
   onDeleteStoredData: () -> Unit,
   onOpenNfcSettings: () -> Unit,
 ) {
@@ -59,12 +61,13 @@ fun PassportScreen(
   ) {
     if (nfcStatus != NfcStatus.Ready) item { StatusCard(nfcStatus, onOpenNfcSettings) }
     item { KeyCard(state, onDocumentNumberChange, onDateOfBirthChange, onDateOfExpiryChange) }
+    item { BindCard(state, onBindAddressChange) }
     state.step?.let { step -> item { ProgressCard(step) } }
     if (state.step == null && state.keyReady && state.result == null && state.failure == null) {
       item { InfoCard(stringResource(R.string.passport_hold)) }
     }
     state.failure?.let { item { InfoCard(it, MaterialTheme.colorScheme.errorContainer) } }
-    state.result?.let { result -> item { ResultCard(result, state.savedFile) } }
+    state.result?.let { result -> item { ResultCard(result, state.savedFile, state.resultBindRequested) } }
     item { StoredDataCard(state.storedCount, onDeleteStoredData) }
   }
 }
@@ -102,6 +105,27 @@ private fun KeyCard(
       )
       Text(
         stringResource(R.string.passport_key_privacy),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+      )
+    }
+  }
+}
+
+@Composable
+private fun BindCard(state: PassportUiState, onBindAddressChange: (String) -> Unit) {
+  Card(Modifier.fillMaxWidth()) {
+    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+      Text(stringResource(R.string.passport_bind_title), style = MaterialTheme.typography.titleMedium)
+      KeyField(
+        value = state.bindAddress,
+        label = stringResource(R.string.passport_bind_address),
+        error = state.bindAddressError,
+        keyboard = KeyboardOptions(autoCorrectEnabled = false, keyboardType = KeyboardType.Ascii),
+        onChange = onBindAddressChange,
+      )
+      Text(
+        stringResource(R.string.passport_bind_help),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
       )
@@ -153,7 +177,7 @@ private fun InfoCard(text: String, color: Color = MaterialTheme.colorScheme.seco
 }
 
 @Composable
-private fun ResultCard(result: PassportReadResult, savedFile: String?) {
+private fun ResultCard(result: PassportReadResult, savedFile: String?, bindRequested: Boolean) {
   val pa = result.passiveAuth
   Card(Modifier.fillMaxWidth()) {
     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -182,6 +206,12 @@ private fun ResultCard(result: PassportReadResult, savedFile: String?) {
         },
         result.chipAuth.detail,
       )
+      val bound = result.chipAuth.aaBoundAddress
+      if (bound != null) {
+        CheckRow("Chip signed Souspli address 0x${bound.toHex("")}", result.chipAuth.status == ChipAuthResult.Status.Passed)
+      } else if (bindRequested) {
+        CheckRow("Chip signed Souspli address", false, "This chip has no Active Authentication, so it cannot sign an address")
+      }
       Text(
         stringResource(R.string.passport_csca_note),
         style = MaterialTheme.typography.bodySmall,

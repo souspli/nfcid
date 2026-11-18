@@ -15,15 +15,8 @@
 import fs from "fs"
 import path from "path"
 import { Noir } from "@noir-lang/noir_js"
-import {
-  Binary,
-  calculatePackagedCertificatesRoot,
-  getAgeCircuitInputs,
-  getNationalityInclusionCircuitInputs,
-  getNowTimestamp,
-  type PackagedCertificatesFile,
-} from "@zkpassport/utils"
-import { TestHelper, convertPemToPackagedCertificateV1 } from "../src/ts/test-helper"
+import { getAgeCircuitInputs, getNationalityInclusionCircuitInputs, getNowTimestamp } from "@zkpassport/utils"
+import { loadPassport, short } from "./common"
 
 const [exportPath, trustDir, outDir] = process.argv.slice(2)
 if (!exportPath || !trustDir || !outDir) {
@@ -31,46 +24,10 @@ if (!exportPath || !trustDir || !outDir) {
   process.exit(2)
 }
 
-/** EF.SOD is `77 len ContentInfo`; zkPassport's reader wants the bare ContentInfo. */
-function unwrapSod(b: Buffer): Buffer {
-  if (b[0] !== 0x77) throw new Error("EF.SOD must start with tag 77")
-  let i = 1
-  let len = b[i++]
-  if (len & 0x80) {
-    const n = len & 0x7f
-    len = 0
-    for (let k = 0; k < n; k++) len = (len << 8) | b[i++]
-  }
-  return b.subarray(i, i + len)
-}
-
-const short = (v: unknown) => {
-  const s = typeof v === "bigint" ? "0x" + v.toString(16) : String(v)
-  return s.length > 18 ? s.slice(0, 10) + "…" + s.slice(-6) : s
-}
 const asBig = (v: unknown) => BigInt(v as string)
 
 async function main() {
-  const exp = JSON.parse(fs.readFileSync(exportPath, "utf8"))
-  const dg1 = Binary.from(new Uint8Array(Buffer.from(exp.files["DG1"], "base64")))
-  const sod = Binary.from(new Uint8Array(unwrapSod(Buffer.from(exp.files["EF.SOD"], "base64"))))
-
-  const helper = new TestHelper()
-  await helper.loadPassport(dg1, sod)
-
-  const certs: PackagedCertificatesFile = {
-    version: 1,
-    timestamp: Math.floor(Date.now() / 1000),
-    root: "",
-    certificates: [],
-    masterlists: [],
-    revocations: [],
-  }
-  for (const f of fs.readdirSync(trustDir).filter((f) => f.endsWith(".pem")).sort()) {
-    certs.certificates.push(await convertPemToPackagedCertificateV1(fs.readFileSync(path.join(trustDir, f), "utf8")))
-  }
-  certs.root = await calculatePackagedCertificatesRoot(certs)
-  helper.setCertificates(certs)
+  const { helper, certs } = await loadPassport(exportPath, trustDir)
   console.log(`certificate registry: ${certs.certificates.length} CSCA certs, root ${short(certs.root)}`)
 
   // Same disclosure salts the helper uses for the integrity circuit (it commits to them).
