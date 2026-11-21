@@ -40,14 +40,16 @@ Each step's `comm_in` must equal the output commitment of the step it chains fro
 
 ## Proof packages for Souspli
 
-`package.sh` runs `package.ts`, which proves in-process with bb.js (the library a verifier uses too), so no witness is written to disk. A package holds six proofs: `dsc`, `id_data`, `integrity`, the claims asked for (`age`, `nationality`), and `bind`.
+`package.sh` runs `package.ts`, which proves in-process with bb.js (the library a verifier uses too), so no witness is written to disk. It proves the chain `dsc`, `id_data`, `integrity`, the claims asked for (`age`, `nationality`) and `bind`, then wraps them in zkPassport's recursive **outer** circuit. The package holds that one proof (format 2).
+
+- **One proof, about 20 KB.** Small enough for a Souspli letter to travel through a relay. The outer circuit checks inside the proof that every inner proof came from a circuit in zkPassport's circuit registry (for the pinned release) and that they chain. The tool refuses to continue if a circuit compiled here does not hash to the value in zkPassport's own list. `--format 1` writes the six separate proofs instead (about 120 KB).
 
 - **Bound to an address.** The `bind` circuit commits to the Souspli address, and all disclosure proofs share one integrity commitment, so the claims belong to that address.
 - **Scope decides the nullifier.** One passport gives one nullifier per `--scope` (plus `--subscope`). Use a group's or a ballot's hash to allow one membership or one vote per passport.
 - **Fresh salts every run.** Two packages from the same passport share no public value except the nullifier when they share a scope (checked 2026-11-18). The benchmark script above uses fixed salts and its outputs are not safe to publish.
-- **`--pins <file>`** writes what a verifier must pin: the certificate registry root and each circuit's verification key. The root is reproducible because `common.ts` fixes the registry timestamp (`TRUST_SET_TIMESTAMP`).
+- **`--pins <file>`** writes what a verifier must pin: the certificate registry root, the circuit registry root and the outer circuit's verification key (for format 1, a key per circuit). `outer-pins.sh` prints the part that depends on no passport: the circuit registry root and all three outer keys. The certificate root is reproducible because `common.ts` fixes the registry timestamp (`TRUST_SET_TIMESTAMP`).
 
-A package is about 120 KB and takes about 15 s to build on 16 threads. Before writing it, the tool makes the same checks a verifier makes: every proof verifies, the commitments chain, and the scope, date, parameters and nullifier agree across the proofs.
+A package takes about 45 s to build on 16 threads; the outer proof is about 30 s of that. Before writing it, the tool makes the same checks a verifier makes: every proof verifies, the commitments chain, and the scope, date, parameters and nullifier agree across the proofs and in the outer proof's public inputs.
 
 Public inputs, in order:
 
@@ -57,6 +59,7 @@ Public inputs, in order:
 | `id_data` | commitment in, commitment out |
 | `integrity` | commitment in, commitment out, verification method (100 = chip signatures) |
 | `age`, `nationality`, `bind` | commitment in, date, scope, subscope, parameter commitment, nullifier type, nullifier, OPRF key hash |
+| outer | certificate registry root, circuit registry root, date, scope, subscope, one parameter commitment per claim and the bind, nullifier type, nullifier, OPRF key hash, verification method |
 
 ### Test fixtures without a real passport
 
